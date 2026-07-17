@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.5.18",
+    "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.110.6",
     "next": "16.2.10",
+    "pdf2json": "^4.0.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-dropzone": "^17.0.0"

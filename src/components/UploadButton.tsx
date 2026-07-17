@@ -5,22 +5,25 @@ import { useDropzone } from "react-dropzone";
 import { useUser } from "@clerk/nextjs";
 import { supabase } from "@/lib/supabase";
 
-export default function UploadButton() {
+interface UploadButtonProps {
+  onUploadComplete?: () => void;
+}
+
+export default function UploadButton({ onUploadComplete }: UploadButtonProps) {
   const { user } = useUser();
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiStatus, setAiStatus] = useState<string | null>(null);
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
-      // Only accept PDF files
       const file = acceptedFiles[0];
       if (!file || file.type !== "application/pdf") {
         setError("Please upload a PDF file only.");
         return;
       }
 
-      // File size limit: 5MB for free users
       if (file.size > 5 * 1024 * 1024) {
         setError("File size must be less than 5MB.");
         return;
@@ -29,35 +32,64 @@ export default function UploadButton() {
       try {
         setUploading(true);
         setError(null);
+        setAiStatus("Step 1/3: Uploading PDF to cloud...");
 
-        // Step 1: Upload PDF file to Supabase Storage
+        // 1. Upload PDF file to Supabase Storage
         const fileName = `${user?.id}/${Date.now()}_${file.name}`;
         const { data: storageData, error: storageError } =
           await supabase.storage.from("pdfs").upload(fileName, file);
 
         if (storageError) throw storageError;
 
-        // Step 2: Get the public URL of the uploaded file
+        // 2. Get the public URL of the uploaded file
         const { data: urlData } = supabase.storage
           .from("pdfs")
           .getPublicUrl(storageData.path);
 
-        // Step 3: Save file info to our database
-        const { error: dbError } = await supabase.from("files").insert({
-          user_id: user?.id,
-          file_name: file.name,
-          file_url: urlData.publicUrl,
-        });
+        setAiStatus("Step 2/3: Registering document...");
+
+        // 3. Save file info to our database and get the generated ID
+        const { data: dbData, error: dbError } = await supabase
+          .from("files")
+          .insert({
+            user_id: user?.id,
+            file_name: file.name,
+            file_url: urlData.publicUrl,
+          })
+          .select()
+          .single(); // Using .select().single() to get back the new file ID
 
         if (dbError) throw dbError;
 
+        setAiStatus("Step 3/3: Gemini AI is reading & embedding your PDF...");
+
+        // 4. Call our Gemini AI Backend Route to process the PDF
+        const response = await fetch("/api/process-pdf", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fileId: dbData.id,
+            fileUrl: urlData.publicUrl,
+          }),
+        });
+
+        const apiResult = await response.json();
+
+        if (!response.ok) {
+          throw new Error(apiResult.error || "AI processing failed");
+        }
+
         setUploadSuccess(true);
+        if (onUploadComplete) onUploadComplete();
         setTimeout(() => setUploadSuccess(false), 3000);
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
-        setError("Something went wrong. Please try again.");
+        setError(err.message || "Something went wrong. Please try again.");
       } finally {
         setUploading(false);
+        setAiStatus(null);
       }
     },
     [user]
@@ -71,7 +103,6 @@ export default function UploadButton() {
 
   return (
     <div className="w-full">
-      {/* Dropzone Area */}
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors
@@ -85,14 +116,14 @@ export default function UploadButton() {
         {uploading ? (
           <div className="flex flex-col items-center gap-3">
             <div className="text-4xl animate-bounce">⏳</div>
-            <p className="text-blue-600 font-medium">Uploading your PDF...</p>
+            <p className="text-blue-600 font-medium">Processing File</p>
+            <p className="text-gray-500 text-sm">{aiStatus}</p>
           </div>
         ) : uploadSuccess ? (
           <div className="flex flex-col items-center gap-3">
-            <div className="text-4xl">✅</div>
-            <p className="text-green-600 font-medium">
-              PDF uploaded successfully!
-            </p>
+            <div className="text-4xl animate-pulse">🎉</div>
+            <p className="text-green-600 font-bold">PDF Processed by Gemini AI!</p>
+            <p className="text-gray-500 text-xs">Ready to chat!</p>
           </div>
         ) : isDragActive ? (
           <div className="flex flex-col items-center gap-3">
@@ -116,7 +147,6 @@ export default function UploadButton() {
         )}
       </div>
 
-      {/* Error Message */}
       {error && (
         <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
           <p className="text-red-600 text-sm">{error}</p>
