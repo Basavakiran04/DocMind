@@ -1,39 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getEmbeddingModel, chunkText, processInBatches } from "@/lib/gemini";
 import PDFParser from "pdf2json";
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
-// Helper function to split text into chunks
-function chunkText(text: string, chunkSize = 1000, overlap = 200): string[] {
-  const chunks: string[] = [];
-  let i = 0;
-  const cleanText = text.replace(/\s+/g, " ").trim();
-  while (i < cleanText.length) {
-    const chunk = cleanText.slice(i, i + chunkSize);
-    chunks.push(chunk);
-    i += chunkSize - overlap;
-  }
-  return chunks;
-}
-
-// Extract text from PDF buffer using pdf2json
+// Extract text from PDF buffer
 function extractTextFromPDF(buffer: Buffer): Promise<string> {
   return new Promise((resolve, reject) => {
     const pdfParser = new (PDFParser as any)(null, 1);
-
     pdfParser.on("pdfParser_dataError", (errData: any) => {
       reject(new Error(errData.parserError));
     });
-
     pdfParser.on("pdfParser_dataReady", () => {
-      // getRawTextContent() returns plain text from the PDF
       const rawText = pdfParser.getRawTextContent();
       resolve(rawText);
     });
-
     pdfParser.parseBuffer(buffer);
   });
 }
@@ -59,9 +39,9 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    console.log("📄 Parsing PDF with pdf2json...");
+    console.log("📄 Parsing PDF...");
 
-    // 2. Extract text from PDF
+    // 2. Extract text
     const rawText = await extractTextFromPDF(buffer);
 
     if (!rawText || rawText.trim().length === 0) {
@@ -71,32 +51,40 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`✂️ Extracted ${rawText.length} characters. Chunking...`);
+    console.log(`✂️ Extracted ${rawText.length} characters.`);
 
-    // 3. Chunk the text
+    // Solution 3: Larger chunks = fewer API calls
     const textChunks = chunkText(rawText);
+    console.log(`📦 Split into ${textChunks.length} chunks`);
 
-    console.log(`🧠 Sending ${textChunks.length} chunks to Gemini AI...`);
+    console.log(`🧠 Sending chunks to Gemini AI...`);
 
-    // 4. Generate embeddings with Gemini
-    const model = genAI.getGenerativeModel({ model: "models/gemini-embedding-001" });
-    const embeddingRecords = [];
+    // Solution 1 + 4: Batch processing with rotating API keys
+    const embeddingRecords: any[] = [];
 
-    for (let i = 0; i < textChunks.length; i++) {
-      const chunk = textChunks[i];
-      console.log(`🔄 Processing chunk ${i + 1}/${textChunks.length}`);
-      const embedResult = await model.embedContent(chunk);
-      const vector = embedResult.embedding.values;
-      embeddingRecords.push({
-        file_id: fileId,
-        content: chunk,
-        embedding: vector,
-      });
-    }
+    await processInBatches(
+      textChunks,
+      5,    // Process 5 chunks at a time
+      1500, // Wait 1.5 seconds between batches
+      async (chunk: string, index: number) => {
+        console.log(`🔄 Processing chunk ${index + 1}/${textChunks.length}`);
+
+        // Solution 4: Gets a fresh rotating API key each time
+        const model = getEmbeddingModel();
+        const embedResult = await model.embedContent(chunk);
+        const vector = embedResult.embedding.values;
+
+        embeddingRecords.push({
+          file_id: fileId,
+          content: chunk,
+          embedding: vector,
+        });
+      }
+    );
 
     console.log("💾 Saving vectors to Supabase...");
 
-    // 5. Save embeddings to Supabase
+    // Save all embeddings to Supabase
     const { error: dbError } = await supabase
       .from("file_embeddings")
       .insert(embeddingRecords);
