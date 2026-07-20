@@ -510,7 +510,7 @@ export default function Home() {
     <div className="min-h-screen bg-black text-white overflow-x-hidden">
 
       {/* ── Navbar ── */}
-      <nav className="sticky top-0 z-50 flex justify-between items-center px-6 py-4 border-b border-white/5 bg-black/80 backdrop-blur-md">
+       <nav className="fixed top-0 left-0 right-0 z-[999] flex justify-between items-center px-6 py-4 border-b border-white/5 bg-black/90 backdrop-blur-md">
         <h1 className="text-xl font-bold tracking-tight">
           <span className="text-white">Doc</span>
           <span className="gradient-text">Mind</span>
@@ -541,10 +541,10 @@ export default function Home() {
             </div>
           )}
         </div>
-      </nav>
+       </nav>
 
       {/* ── Hero ── */}
-      <section className="relative flex flex-col items-center justify-center px-4 pt-20 pb-16 overflow-hidden">
+      <section className="relative flex flex-col items-center justify-center px-4 pt-32 pb-16 overflow-hidden">
         {/* Orbs + Particles */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#D4AF37]/15 rounded-full blur-[100px] animate-orb-float" />
