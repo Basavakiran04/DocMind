@@ -3,15 +3,15 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "DocuMind - Chat with Your PDFs",
-  description: "AI-powered PDF question answering",
+  title: "DocMind - Chat with your PDFs",
+  description: "Upload any PDF and chat with it using AI",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
       <body>
