@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
-import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useRef, useCallback } from "react";
 
-// Typing animation questions
+// ============================================
+// DATA
+// ============================================
 const typingTexts = [
   "What is the conclusion of this report?",
   "Summarize this research paper for me",
@@ -14,7 +16,6 @@ const typingTexts = [
   "What are the main recommendations?",
 ];
 
-// Fixed particle positions
 const particles = [
   { x: 5, y: 10, size: 2, delay: 0 },
   { x: 15, y: 25, size: 1.5, delay: 0.5 },
@@ -33,52 +34,85 @@ const particles = [
   { x: 70, y: 50, size: 2, delay: 1.6 },
 ];
 
-// Typing hook
-function useTypingAnimation(
-  texts: string[],
-  typingSpeed = 60,
-  deleteSpeed = 30,
-  pauseTime = 2000
-) {
-  const [displayText, setDisplayText] = useState("");
-  const [textIndex, setTextIndex] = useState(0);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [mounted, setMounted] = useState(false);
+const steps = [
+  {
+    step: "01",
+    icon: "📄",
+    title: "Upload Your PDF",
+    desc: "Drag and drop any PDF document. We support research papers, reports, and textbooks.",
+  },
+  {
+    step: "02",
+    icon: "🧠",
+    title: "AI Reads It",
+    desc: "Google Gemini creates intelligent embeddings using a RAG pipeline for deep understanding.",
+  },
+  {
+    step: "03",
+    icon: "💬",
+    title: "Chat & Ask",
+    desc: "Ask questions in natural language. Get accurate, context-aware answers in seconds.",
+  },
+];
 
-  useEffect(() => setMounted(true), []);
+const features = [
+  {
+    icon: "🧠",
+    title: "Smart AI Engine",
+    desc: "Uses RAG pipeline to find the exact paragraph that answers your question.",
+  },
+  {
+    icon: "⚡",
+    title: "Lightning Fast",
+    desc: "Powered by Groq Llama 3. Get accurate answers in under 3 seconds.",
+  },
+  {
+    icon: "🔒",
+    title: "Secure & Private",
+    desc: "Enterprise-grade authentication. Your documents stay private always.",
+  },
+  {
+    icon: "📊",
+    title: "Any Document",
+    desc: "Research papers, reports, textbooks, contracts — any PDF up to 5MB.",
+  },
+  {
+    icon: "🎯",
+    title: "No Hallucinations",
+    desc: "Answers based ONLY on your document. No made-up information.",
+  },
+  {
+    icon: "💰",
+    title: "100% Free",
+    desc: "No credit card required. No hidden fees. Start chatting immediately.",
+  },
+];
 
-  useEffect(() => {
-    if (!mounted) return;
-    const currentText = texts[textIndex];
-    let timeout: NodeJS.Timeout;
+const techStack = [
+  "Next.js",
+  "TypeScript",
+  "Tailwind CSS",
+  "Supabase",
+  "PostgreSQL",
+  "pgvector",
+  "Google Gemini",
+  "Groq Llama 3",
+  "Clerk Auth",
+  "Framer Motion",
+  "Vercel",
+];
 
-    if (!isDeleting) {
-      if (displayText.length < currentText.length) {
-        timeout = setTimeout(
-          () => setDisplayText(currentText.slice(0, displayText.length + 1)),
-          typingSpeed
-        );
-      } else {
-        timeout = setTimeout(() => setIsDeleting(true), pauseTime);
-      }
-    } else {
-      if (displayText.length > 0) {
-        timeout = setTimeout(
-          () => setDisplayText(displayText.slice(0, -1)),
-          deleteSpeed
-        );
-      } else {
-        setIsDeleting(false);
-        setTextIndex((prev) => (prev + 1) % texts.length);
-      }
-    }
-    return () => clearTimeout(timeout);
-  }, [displayText, isDeleting, textIndex, mounted, texts, typingSpeed, deleteSpeed, pauseTime]);
+const exampleQuestions = [
+  "Summarize this 50-page annual report",
+  "What are the key findings of this research?",
+  "Explain the methodology in simple terms",
+  "What recommendations does the author make?",
+  "Compare the results from Chapter 3 and Chapter 5",
+];
 
-  return { displayText, mounted };
-}
-
-// Animation variants
+// ============================================
+// ANIMATION VARIANTS
+// ============================================
 const fadeInUp = {
   hidden: { opacity: 0, y: 40 },
   visible: {
@@ -122,6 +156,350 @@ const scaleIn = {
   },
 };
 
+// ============================================
+// TYPING HOOK
+// ============================================
+function useTypingAnimation(
+  texts: string[],
+  typingSpeed = 60,
+  deleteSpeed = 30,
+  pauseTime = 2000
+) {
+  const [displayText, setDisplayText] = useState("");
+  const [textIndex, setTextIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const currentText = texts[textIndex];
+    let timeout: NodeJS.Timeout;
+
+    if (!isDeleting) {
+      if (displayText.length < currentText.length) {
+        timeout = setTimeout(
+          () => setDisplayText(currentText.slice(0, displayText.length + 1)),
+          typingSpeed
+        );
+      } else {
+        timeout = setTimeout(() => setIsDeleting(true), pauseTime);
+      }
+    } else {
+      if (displayText.length > 0) {
+        timeout = setTimeout(
+          () => setDisplayText(displayText.slice(0, -1)),
+          deleteSpeed
+        );
+      } else {
+        setIsDeleting(false);
+        setTextIndex((prev) => (prev + 1) % texts.length);
+      }
+    }
+    return () => clearTimeout(timeout);
+  }, [
+    displayText,
+    isDeleting,
+    textIndex,
+    mounted,
+    texts,
+    typingSpeed,
+    deleteSpeed,
+    pauseTime,
+  ]);
+
+  return { displayText, mounted };
+}
+
+// ============================================
+// GOLD DIVIDER
+// ============================================
+function GoldDivider() {
+  return (
+    <div className="max-w-4xl mx-auto px-4">
+      <div className="h-px bg-gradient-to-r from-transparent via-[#D4AF37]/30 to-transparent" />
+    </div>
+  );
+}
+
+// ============================================
+// HOW IT WORKS - V2 INTERACTIVE CARDS
+// ============================================
+function HowItWorks() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const autoRotateRef = useRef<NodeJS.Timeout | null>(null);
+  const progressRef = useRef<NodeJS.Timeout | null>(null);
+  const [progress, setProgress] = useState(0);
+
+  const ROTATE_INTERVAL = 3000;
+  const PROGRESS_STEP = 50;
+
+  const startProgress = useCallback(() => {
+    setProgress(0);
+    if (progressRef.current) clearInterval(progressRef.current);
+    let current = 0;
+    progressRef.current = setInterval(() => {
+      current += (PROGRESS_STEP / ROTATE_INTERVAL) * 100;
+      if (current >= 100) current = 0;
+      setProgress(current);
+    }, PROGRESS_STEP);
+  }, []);
+
+  const stopProgress = useCallback(() => {
+    if (progressRef.current) clearInterval(progressRef.current);
+  }, []);
+
+  const startAutoRotate = useCallback(() => {
+    if (autoRotateRef.current) clearInterval(autoRotateRef.current);
+    autoRotateRef.current = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % 3);
+      setProgress(0);
+    }, ROTATE_INTERVAL);
+    startProgress();
+  }, [startProgress]);
+
+  const stopAutoRotate = useCallback(() => {
+    if (autoRotateRef.current) clearInterval(autoRotateRef.current);
+    stopProgress();
+  }, [stopProgress]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          startAutoRotate();
+        } else {
+          stopAutoRotate();
+          setActiveIndex(0);
+          setProgress(0);
+        }
+      },
+      { threshold: 0.3 }
+    );
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => {
+      observer.disconnect();
+      stopAutoRotate();
+    };
+  }, [startAutoRotate, stopAutoRotate]);
+
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      e.preventDefault();
+      stopAutoRotate();
+      if (e.deltaY > 0 || e.deltaX > 0) {
+        setActiveIndex((prev) => Math.min(prev + 1, 2));
+      } else {
+        setActiveIndex((prev) => Math.max(prev - 1, 0));
+      }
+      setProgress(0);
+      setTimeout(() => startAutoRotate(), 3000);
+    },
+    [startAutoRotate, stopAutoRotate]
+  );
+
+  const handleCardClick = useCallback(
+    (index: number) => {
+      stopAutoRotate();
+      setActiveIndex(index);
+      setProgress(0);
+      setTimeout(() => startAutoRotate(), 3000);
+    },
+    [startAutoRotate, stopAutoRotate]
+  );
+
+  const getCardAnimation = (index: number) => {
+    const isActive = activeIndex === index;
+    const isLeft = index < activeIndex;
+    return {
+      scale: isActive ? 1.06 : 0.88,
+      opacity: isActive ? 1 : 0.2,
+      y: isActive ? -10 : 4,
+      x: isActive ? 0 : isLeft ? -15 : 15,
+    };
+  };
+
+  return (
+    <motion.div
+      ref={sectionRef}
+      className="max-w-4xl mx-auto"
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: false, margin: "-80px" }}
+      transition={{ duration: 0.6 }}
+    >
+      {/* Section Label */}
+      <p className="text-[#D4AF37] text-sm font-medium text-center mb-2">
+        HOW IT WORKS
+      </p>
+      <h3 className="text-3xl font-bold text-center mb-8">
+        Three steps to{" "}
+        <span className="gradient-text">instant answers</span>
+      </h3>
+
+      {/* Progress Dots */}
+      <div className="flex justify-center gap-3 mb-6">
+        {[0, 1, 2].map((i) => (
+          <button
+            key={i}
+            onClick={() => handleCardClick(i)}
+            className="relative h-1.5 rounded-full overflow-hidden transition-all duration-300"
+            style={{ width: activeIndex === i ? "48px" : "16px" }}
+          >
+            <div className="absolute inset-0 rounded-full bg-white/10" />
+            {activeIndex === i && (
+              <motion.div
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F5D060]"
+                initial={{ width: "0%" }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.05, ease: "linear" }}
+              />
+            )}
+            {i < activeIndex && (
+              <div className="absolute inset-0 rounded-full bg-[#D4AF37]/60" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Step Label */}
+      <motion.div
+        key={activeIndex}
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="text-center mb-8"
+      >
+        <span className="text-[#D4AF37]/50 text-xs font-mono tracking-[0.3em]">
+          STEP {steps[activeIndex].step} OF 03
+        </span>
+      </motion.div>
+
+      {/* Cards Grid */}
+      <div
+        className="grid grid-cols-1 md:grid-cols-3 gap-6"
+        onWheel={handleWheel}
+      >
+        {steps.map((feature, i) => {
+          const isActive = activeIndex === i;
+          return (
+            <motion.div
+              key={feature.step}
+              onClick={() => handleCardClick(i)}
+              animate={getCardAnimation(i)}
+              whileHover={{ scale: isActive ? 1.08 : 0.92 }}
+              transition={{
+                duration: 0.6,
+                ease: [0.25, 0.46, 0.45, 0.94],
+              }}
+              className={`relative rounded-2xl cursor-pointer select-none ${
+                isActive ? "z-10" : "z-0"
+              }`}
+            >
+              {/* Active Effects */}
+              <AnimatePresence>
+                {isActive && (
+                  <>
+                    {/* Outer glow */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.5 }}
+                      className="absolute -inset-4 rounded-3xl bg-[#D4AF37]/8 blur-2xl -z-10"
+                    />
+                    {/* Gold border */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.4 }}
+                      className="absolute -inset-[1px] rounded-2xl bg-gradient-to-br from-[#F5D060]/70 via-[#D4AF37]/15 to-[#D4AF37]/70"
+                    />
+                    {/* Bottom reflection */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.6 }}
+                      className="absolute -bottom-6 left-4 right-4 h-8 bg-[#D4AF37]/10 blur-xl rounded-full -z-10"
+                    />
+                  </>
+                )}
+              </AnimatePresence>
+
+              {/* Card Body */}
+              <div
+                className={`relative rounded-2xl p-6 h-full border transition-all duration-500 ${
+                  isActive
+                    ? "bg-[linear-gradient(180deg,rgba(212,175,55,0.12),rgba(10,10,10,0.95)_30%,rgba(10,10,10,1))] border-[#D4AF37]/40"
+                    : "bg-[#060606] border-white/[0.03]"
+                }`}
+              >
+                {/* Header Row */}
+                <div className="flex items-center justify-between mb-4">
+                  <span
+                    className={`text-xs font-mono tracking-[0.2em] transition-colors duration-500 ${
+                      isActive ? "text-[#D4AF37]" : "text-gray-800"
+                    }`}
+                  >
+                    STEP {feature.step}
+                  </span>
+                  {isActive && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="w-2 h-2 rounded-full bg-[#D4AF37] shadow-[0_0_8px_rgba(212,175,55,0.6)]"
+                    />
+                  )}
+                </div>
+
+                {/* Icon */}
+                <div
+                  className={`text-4xl mb-4 transition-all duration-500 ${
+                    isActive
+                      ? "opacity-100 scale-100"
+                      : "opacity-20 scale-90 grayscale"
+                  }`}
+                >
+                  {feature.icon}
+                </div>
+
+                {/* Title */}
+                <h4
+                  className={`font-semibold text-lg mb-2 transition-colors duration-500 ${
+                    isActive ? "text-white" : "text-gray-700"
+                  }`}
+                >
+                  {feature.title}
+                </h4>
+
+                {/* Description - only visible on active */}
+                <motion.p
+                  animate={{
+                    opacity: isActive ? 1 : 0,
+                    y: isActive ? 0 : 8,
+                    height: isActive ? "auto" : 0,
+                  }}
+                  transition={{ duration: 0.4 }}
+                  className="text-sm text-gray-400 leading-relaxed overflow-hidden"
+                >
+                  {feature.desc}
+                </motion.p>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+}
+
+// ============================================
+// MAIN PAGE
+// ============================================
 export default function Home() {
   const { isSignedIn, isLoaded } = useUser();
   const { displayText, mounted } = useTypingAnimation(typingTexts);
@@ -130,7 +508,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden">
-      {/* Navbar */}
+
+      {/* ── Navbar ── */}
       <nav className="sticky top-0 z-50 flex justify-between items-center px-6 py-4 border-b border-white/5 bg-black/80 backdrop-blur-md">
         <h1 className="text-xl font-bold tracking-tight">
           <span className="text-white">Doc</span>
@@ -145,7 +524,7 @@ export default function Home() {
                 </button>
               </SignInButton>
               <SignUpButton mode="modal">
-                <button className="px-4 py-2 text-sm text-black bg-gradient-to-r from-[#D4AF37] to-[#F5D060] rounded-lg hover:opacity-90 transition-opacity font-medium">
+                <button className="px-4 py-2 text-sm text-black bg-gradient-to-r from-[#D4AF37] to-[#F5D060] rounded-lg hover:opacity-90 font-medium">
                   Get Started Free
                 </button>
               </SignUpButton>
@@ -164,9 +543,9 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* ── Hero ── */}
       <section className="relative flex flex-col items-center justify-center px-4 pt-20 pb-16 overflow-hidden">
-        {/* Golden Orb Mesh */}
+        {/* Orbs + Particles */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#D4AF37]/15 rounded-full blur-[100px] animate-orb-float" />
           <div className="absolute top-[20%] left-[35%] w-[350px] h-[350px] bg-[#F5D060]/10 rounded-full blur-[80px] animate-orb-float-reverse" />
@@ -222,7 +601,10 @@ export default function Home() {
             </div>
           </motion.div>
 
-          <motion.div variants={fadeInUp} className="flex gap-4 justify-center">
+          <motion.div
+            variants={fadeInUp}
+            className="flex gap-4 justify-center"
+          >
             {!isSignedIn ? (
               <>
                 <SignUpButton mode="modal">
@@ -248,14 +630,14 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Product Preview - Connected to hero */}
+      {/* ── Product Preview ── */}
       <section className="px-4 pb-16">
         <motion.div
           className="max-w-3xl mx-auto"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-50px" }}
-          variants={scaleIn}
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, margin: "-50px" }}
+          transition={{ duration: 0.8 }}
         >
           <div className="gradient-border-card">
             <div className="bg-[#0A0A0A] rounded-xl p-6">
@@ -303,90 +685,22 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Divider line with glow */}
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="h-px bg-gradient-to-r from-transparent via-[#D4AF37]/30 to-transparent" />
-      </div>
+      <GoldDivider />
 
-      {/* How It Works */}
+      {/* ── How It Works V2 ── */}
       <section className="px-4 py-16">
-        <motion.div
-          className="max-w-4xl mx-auto"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
-          variants={staggerContainer}
-        >
-          <motion.p
-            variants={fadeInUp}
-            className="text-[#D4AF37] text-sm font-medium text-center mb-2"
-          >
-            HOW IT WORKS
-          </motion.p>
-          <motion.h3
-            variants={fadeInUp}
-            className="text-3xl font-bold text-center mb-10"
-          >
-            Three steps to{" "}
-            <span className="gradient-text">instant answers</span>
-          </motion.h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                step: "01",
-                icon: "📄",
-                title: "Upload Your PDF",
-                desc: "Drag and drop any PDF document. We support research papers, reports, and textbooks.",
-              },
-              {
-                step: "02",
-                icon: "🧠",
-                title: "AI Reads It",
-                desc: "Google Gemini creates intelligent embeddings using a RAG pipeline for deep understanding.",
-              },
-              {
-                step: "03",
-                icon: "💬",
-                title: "Chat & Ask",
-                desc: "Ask questions in natural language. Get accurate, context-aware answers in seconds.",
-              },
-            ].map((feature, i) => (
-              <motion.div
-                key={feature.step}
-                variants={i === 0 ? fadeInLeft : i === 2 ? fadeInRight : fadeInUp}
-                className="gradient-border-card group"
-              >
-                <div className="bg-[#0A0A0A] rounded-xl p-6 h-full transition-colors group-hover:bg-[#111111]">
-                  <span className="text-xs text-[#D4AF37] font-mono tracking-wider">
-                    STEP {feature.step}
-                  </span>
-                  <div className="text-3xl my-4">{feature.icon}</div>
-                  <h4 className="font-semibold text-white mb-2">
-                    {feature.title}
-                  </h4>
-                  <p className="text-sm text-gray-500 leading-relaxed">
-                    {feature.desc}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
+        <HowItWorks />
       </section>
 
-      {/* Gold divider */}
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="h-px bg-gradient-to-r from-transparent via-[#D4AF37]/30 to-transparent" />
-      </div>
+      <GoldDivider />
 
-      {/* Features */}
+      {/* ── Features ── */}
       <section className="px-4 py-16">
         <motion.div
           className="max-w-4xl mx-auto"
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
+          viewport={{ once: false, margin: "-80px" }}
           variants={staggerContainer}
         >
           <motion.p
@@ -403,38 +717,7 @@ export default function Home() {
           </motion.h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {[
-              {
-                icon: "🧠",
-                title: "Smart AI Engine",
-                desc: "Uses RAG pipeline to find the exact paragraph that answers your question.",
-              },
-              {
-                icon: "⚡",
-                title: "Lightning Fast",
-                desc: "Powered by Groq Llama 3. Get accurate answers in under 3 seconds.",
-              },
-              {
-                icon: "🔒",
-                title: "Secure & Private",
-                desc: "Enterprise-grade authentication. Your documents stay private always.",
-              },
-              {
-                icon: "📊",
-                title: "Any Document",
-                desc: "Research papers, reports, textbooks, contracts — any PDF up to 5MB.",
-              },
-              {
-                icon: "🎯",
-                title: "No Hallucinations",
-                desc: "Answers based ONLY on your document. No made-up information.",
-              },
-              {
-                icon: "💰",
-                title: "100% Free",
-                desc: "No credit card required. No hidden fees. Start chatting immediately.",
-              },
-            ].map((feature) => (
+            {features.map((feature) => (
               <motion.div
                 key={feature.title}
                 variants={fadeInUp}
@@ -455,18 +738,15 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Gold divider */}
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="h-px bg-gradient-to-r from-transparent via-[#D4AF37]/30 to-transparent" />
-      </div>
+      <GoldDivider />
 
-      {/* Example Questions */}
+      {/* ── Example Questions ── */}
       <section className="px-4 py-16">
         <motion.div
           className="max-w-3xl mx-auto text-center"
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
+          viewport={{ once: false, margin: "-80px" }}
           variants={staggerContainer}
         >
           <motion.p
@@ -475,19 +755,16 @@ export default function Home() {
           >
             EXAMPLE QUESTIONS
           </motion.p>
-          <motion.h3 variants={fadeInUp} className="text-3xl font-bold mb-8">
+          <motion.h3
+            variants={fadeInUp}
+            className="text-3xl font-bold mb-8"
+          >
             Ask anything about your{" "}
             <span className="gradient-text">documents</span>
           </motion.h3>
 
           <div className="space-y-3">
-            {[
-              "Summarize this 50-page annual report",
-              "What are the key findings of this research?",
-              "Explain the methodology in simple terms",
-              "What recommendations does the author make?",
-              "Compare the results from Chapter 3 and Chapter 5",
-            ].map((q, i) => (
+            {exampleQuestions.map((q, i) => (
               <motion.div
                 key={i}
                 variants={i % 2 === 0 ? fadeInLeft : fadeInRight}
@@ -508,18 +785,15 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Gold divider */}
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="h-px bg-gradient-to-r from-transparent via-[#D4AF37]/30 to-transparent" />
-      </div>
+      <GoldDivider />
 
-      {/* Tech Stack */}
+      {/* ── Tech Stack ── */}
       <section className="px-4 py-16">
         <motion.div
           className="max-w-3xl mx-auto text-center"
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
+          viewport={{ once: false, margin: "-80px" }}
           variants={staggerContainer}
         >
           <motion.p
@@ -528,11 +802,17 @@ export default function Home() {
           >
             TECH STACK
           </motion.p>
-          <motion.h3 variants={fadeInUp} className="text-3xl font-bold mb-3">
-            Built with <span className="gradient-text">industry-grade</span>{" "}
-            tools
+          <motion.h3
+            variants={fadeInUp}
+            className="text-3xl font-bold mb-3"
+          >
+            Built with{" "}
+            <span className="gradient-text">industry-grade</span> tools
           </motion.h3>
-          <motion.p variants={fadeInUp} className="text-gray-500 text-sm mb-8">
+          <motion.p
+            variants={fadeInUp}
+            className="text-gray-500 text-sm mb-8"
+          >
             The same technologies used by leading tech companies
           </motion.p>
 
@@ -540,19 +820,7 @@ export default function Home() {
             variants={fadeInUp}
             className="flex flex-wrap justify-center gap-3"
           >
-            {[
-              "Next.js",
-              "TypeScript",
-              "Tailwind CSS",
-              "Supabase",
-              "PostgreSQL",
-              "pgvector",
-              "Google Gemini",
-              "Groq Llama 3",
-              "Clerk Auth",
-              "Framer Motion",
-              "Vercel",
-            ].map((tech) => (
+            {techStack.map((tech) => (
               <motion.span
                 key={tech}
                 variants={scaleIn}
@@ -565,18 +833,15 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Gold divider */}
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="h-px bg-gradient-to-r from-transparent via-[#D4AF37]/30 to-transparent" />
-      </div>
+      <GoldDivider />
 
-      {/* Final CTA */}
+      {/* ── Final CTA ── */}
       <section className="px-4 py-16">
         <motion.div
           className="max-w-xl mx-auto text-center"
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true }}
+          viewport={{ once: false }}
           variants={staggerContainer}
         >
           <motion.h3
@@ -612,7 +877,7 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Footer */}
+      {/* ── Footer ── */}
       <footer className="border-t border-white/5 px-6 py-5">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <p className="text-sm text-gray-600">
