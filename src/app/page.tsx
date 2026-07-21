@@ -155,7 +155,25 @@ const scaleIn = {
     transition: { duration: 0.5, ease: "easeOut" },
   },
 };
+// ============================================
+// FADE ANIMATION HOOK
+// ============================================
+function useFadeAnimation(texts: string[], interval = 3000) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [mounted, setMounted] = useState(false);
 
+  useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % texts.length);
+    }, interval);
+    return () => clearInterval(timer);
+  }, [mounted, texts, interval]);
+
+  return { currentText: texts[currentIndex], currentIndex, mounted };
+}
 // ============================================
 // TYPING HOOK
 // ============================================
@@ -677,7 +695,7 @@ function HowItWorks() {
 // ============================================
 export default function Home() {
   const { isSignedIn, isLoaded } = useUser();
-  const { displayText, mounted } = useTypingAnimation(typingTexts);
+  const { currentText, currentIndex, mounted } = useFadeAnimation(typingTexts, 3000);
 
   if (!isLoaded) return null;
 
@@ -768,11 +786,19 @@ export default function Home() {
 
           <motion.div variants={fadeInUp} className="mb-10">
             <p className="text-gray-500 text-sm mb-2">Try asking:</p>
-            <div className="h-8 flex items-center justify-center">
-              <span className="text-lg text-[#D4AF37]/80 font-mono">
-                &quot;{mounted ? displayText : ""}&quot;
-              </span>
-              <span className="ml-1 w-0.5 h-5 bg-[#D4AF37] animate-blink" />
+            <div className="h-8 flex items-center justify-center overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={currentIndex}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.5, ease: "easeInOut" }}
+                  className="text-lg text-[#D4AF37]/80 font-mono"
+                >
+                  &quot;{mounted ? currentText : ""}&quot;
+                </motion.span>
+              </AnimatePresence>
             </div>
           </motion.div>
 
@@ -798,7 +824,7 @@ export default function Home() {
                 href="/dashboard"
                 className="px-8 py-3 text-black bg-gradient-to-r from-[#D4AF37] to-[#F5D060] rounded-lg font-medium hover:opacity-90 transition-all hover:shadow-lg hover:shadow-[#D4AF37]/20"
               >
-                Open Dashboard →
+                Upload PDF →
               </Link>
             )}
           </motion.div>
@@ -1003,7 +1029,7 @@ export default function Home() {
                 href="/dashboard"
                 className="px-8 py-3 text-black bg-gradient-to-r from-[#D4AF37] to-[#F5D060] rounded-lg font-medium hover:opacity-90 transition-all"
               >
-                Open Dashboard →
+                Upload PDF →
               </Link>
             )}
           </motion.div>
