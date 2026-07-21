@@ -982,8 +982,19 @@ export default function Home() {
             {techStack.map((tech) => (
               <motion.span
                 key={tech}
-                variants={scaleIn}
-                className="px-4 py-2 text-xs font-medium text-gray-300 bg-white/5 border border-[#D4AF37]/20 rounded-full hover:border-[#D4AF37]/50 hover:text-[#D4AF37] transition-colors cursor-default"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: false }}
+                whileHover={{
+                  scale: 1.2,
+                  y: -5,
+                  transition: {
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 10,
+                  },
+                }}
+                className="px-4 py-2 text-xs font-medium text-gray-300 bg-white/5 border border-[#D4AF37]/20 rounded-full hover:border-[#D4AF37]/50 hover:text-[#D4AF37] hover:bg-[#D4AF37]/10 hover:shadow-[0_0_15px_rgba(212,175,55,0.2)] transition-colors cursor-default"
               >
                 {tech}
               </motion.span>
