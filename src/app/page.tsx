@@ -211,7 +211,182 @@ function useTypingAnimation(
 
   return { displayText, mounted };
 }
+// ============================================
+// ANIMATED PRODUCT PREVIEW
+// ============================================
+function ProductPreview() {
+  const previewMessages = [
+    {
+      type: "ai",
+      text: "This document discusses machine learning approaches for predictive analysis...",
+    },
+    {
+      type: "user",
+      text: "What are the key methods used?",
+    },
+    {
+      type: "ai",
+      text: "The paper uses 3 primary methods: Random Forest, SVM, and Neural Networks...",
+    },
+    {
+      type: "ai",
+      text: "Based on the results, Random Forest achieved the highest accuracy of 94.2%...",
+    },
+    {
+      type: "user",
+      text: "Summarize the conclusion",
+    },
+    {
+      type: "ai",
+      text: "The authors conclude that ensemble methods outperform single classifiers...",
+    },
+  ];
 
+  const [visibleMessages, setVisibleMessages] = useState<number[]>([]);
+  const [typingText, setTypingText] = useState("");
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+  const [isTyping, setIsTyping] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    if (currentMessageIndex >= previewMessages.length) {
+      // Reset after all messages are shown
+      const resetTimeout = setTimeout(() => {
+        setVisibleMessages([]);
+        setCurrentMessageIndex(0);
+        setTypingText("");
+      }, 3000);
+      return () => clearTimeout(resetTimeout);
+    }
+
+    const currentMsg = previewMessages[currentMessageIndex];
+    setIsTyping(true);
+    setTypingText("");
+
+    let charIndex = 0;
+    const typeInterval = setInterval(() => {
+      if (charIndex < currentMsg.text.length) {
+        setTypingText(currentMsg.text.slice(0, charIndex + 1));
+        charIndex++;
+      } else {
+        clearInterval(typeInterval);
+        setIsTyping(false);
+        setVisibleMessages((prev) => [...prev, currentMessageIndex]);
+        // Wait before showing next message
+        setTimeout(() => {
+          setCurrentMessageIndex((prev) => prev + 1);
+        }, 1000);
+      }
+    }, 30);
+
+    return () => clearInterval(typeInterval);
+  }, [currentMessageIndex, mounted]);
+
+  return (
+    <div className="gradient-border-card">
+      <div className="bg-[#0A0A0A] rounded-xl p-6">
+        {/* Window Header */}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-3 h-3 rounded-full bg-red-500/70" />
+          <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
+          <div className="w-3 h-3 rounded-full bg-green-500/70" />
+          <span className="text-xs text-gray-600 ml-2">
+            DocMind — Chat with PDF
+          </span>
+        </div>
+
+        <div className="flex gap-4">
+          {/* Fake PDF Side */}
+          <div className="w-1/2 bg-[#1A1A1A] rounded-lg p-4 border border-white/5">
+            <div className="space-y-2">
+              <div className="h-3 bg-gray-700/50 rounded w-full" />
+              <div className="h-3 bg-gray-700/50 rounded w-4/5" />
+              <div className="h-3 bg-gray-700/50 rounded w-full" />
+              <div className="h-3 bg-gray-700/50 rounded w-3/5" />
+              <div className="h-3 bg-gray-700/30 rounded w-full mt-4" />
+              <div className="h-3 bg-gray-700/30 rounded w-4/5" />
+              <div className="h-3 bg-gray-700/30 rounded w-full" />
+              <div className="h-3 bg-gray-700/30 rounded w-2/3" />
+            </div>
+          </div>
+
+          {/* Animated Chat Side */}
+          <div className="w-1/2 flex flex-col gap-2 max-h-[220px] overflow-hidden">
+            {/* Already typed messages */}
+            {visibleMessages.map((msgIndex) => {
+              const msg = previewMessages[msgIndex];
+              return (
+                <motion.div
+                  key={msgIndex}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className={`rounded-lg p-2.5 ${
+                    msg.type === "ai"
+                      ? "bg-[#1A1A1A] border border-white/5"
+                      : "bg-[#D4AF37]/10 border border-[#D4AF37]/20 ml-6"
+                  }`}
+                >
+                  {msg.type === "ai" && (
+                    <p className="text-[10px] text-[#D4AF37] mb-0.5">
+                      🤖 DocMind AI
+                    </p>
+                  )}
+                  <p
+                    className={`text-[11px] leading-relaxed ${
+                      msg.type === "ai" ? "text-gray-400" : "text-gray-300"
+                    }`}
+                  >
+                    {msg.text}
+                  </p>
+                </motion.div>
+              );
+            })}
+
+            {/* Currently typing message */}
+            {isTyping && currentMessageIndex < previewMessages.length && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`rounded-lg p-2.5 ${
+                  previewMessages[currentMessageIndex].type === "ai"
+                    ? "bg-[#1A1A1A] border border-white/5"
+                    : "bg-[#D4AF37]/10 border border-[#D4AF37]/20 ml-6"
+                }`}
+              >
+                {previewMessages[currentMessageIndex].type === "ai" && (
+                  <p className="text-[10px] text-[#D4AF37] mb-0.5">
+                    🤖 DocMind AI
+                  </p>
+                )}
+                <p
+                  className={`text-[11px] leading-relaxed ${
+                    previewMessages[currentMessageIndex].type === "ai"
+                      ? "text-gray-400"
+                      : "text-gray-300"
+                  }`}
+                >
+                  {typingText}
+                  <span className="inline-block w-0.5 h-3 bg-[#D4AF37] ml-0.5 animate-blink" />
+                </p>
+              </motion.div>
+            )}
+
+            {/* Empty state before first message */}
+            {visibleMessages.length === 0 && !isTyping && (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-xs text-gray-600">Starting conversation...</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 // ============================================
 // GOLD DIVIDER
 // ============================================
@@ -630,7 +805,7 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* ── Product Preview ── */}
+      {/* ── Product Preview (Animated) ── */}
       <section className="px-4 pb-16">
         <motion.div
           className="max-w-3xl mx-auto"
@@ -639,49 +814,7 @@ export default function Home() {
           viewport={{ once: false, margin: "-50px" }}
           transition={{ duration: 0.8 }}
         >
-          <div className="gradient-border-card">
-            <div className="bg-[#0A0A0A] rounded-xl p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-3 h-3 rounded-full bg-red-500/70" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
-                <div className="w-3 h-3 rounded-full bg-green-500/70" />
-                <span className="text-xs text-gray-600 ml-2">
-                  DocMind — Chat with PDF
-                </span>
-              </div>
-              <div className="flex gap-4">
-                <div className="w-1/2 bg-[#1A1A1A] rounded-lg p-4 border border-white/5">
-                  <div className="space-y-2">
-                    <div className="h-3 bg-gray-700/50 rounded w-full" />
-                    <div className="h-3 bg-gray-700/50 rounded w-4/5" />
-                    <div className="h-3 bg-gray-700/50 rounded w-full" />
-                    <div className="h-3 bg-gray-700/50 rounded w-3/5" />
-                    <div className="h-3 bg-gray-700/50 rounded w-full mt-4" />
-                    <div className="h-3 bg-gray-700/50 rounded w-4/5" />
-                  </div>
-                </div>
-                <div className="w-1/2 flex flex-col gap-3">
-                  <div className="bg-[#1A1A1A] rounded-lg p-3 border border-white/5">
-                    <p className="text-xs text-[#D4AF37] mb-1">🤖 DocMind AI</p>
-                    <p className="text-xs text-gray-400">
-                      This document discusses machine learning approaches...
-                    </p>
-                  </div>
-                  <div className="bg-[#D4AF37]/10 rounded-lg p-3 ml-8 border border-[#D4AF37]/20">
-                    <p className="text-xs text-gray-300">
-                      What are the key methods used?
-                    </p>
-                  </div>
-                  <div className="bg-[#1A1A1A] rounded-lg p-3 border border-white/5">
-                    <p className="text-xs text-[#D4AF37] mb-1">🤖 DocMind AI</p>
-                    <p className="text-xs text-gray-400">
-                      The paper uses Random Forest, SVM, and Neural Networks...
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ProductPreview />
         </motion.div>
       </section>
 
