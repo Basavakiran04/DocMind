@@ -105,42 +105,45 @@ export default function UploadButton({ onUploadComplete }: UploadButtonProps) {
     <div className="w-full">
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors
-          ${isDragActive
-            ? "border-blue-500 bg-blue-50"
-            : "border-gray-300 bg-white hover:border-blue-400 hover:bg-blue-50"
+        className={`rounded-xl p-10 text-center cursor-pointer transition-colors border
+          ${
+            isDragActive
+              ? "border-[#D4AF37]/60 bg-[#D4AF37]/5"
+              : "border-[#D4AF37]/50 border-dashed bg-[#0A0A0A] hover:border-[#D4AF37]/80 hover:bg-[#0A0A0A]/80"
           }`}
       >
         <input {...getInputProps()} />
 
         {uploading ? (
           <div className="flex flex-col items-center gap-3">
-            <div className="text-4xl animate-bounce">⏳</div>
-            <p className="text-blue-600 font-medium">Processing File</p>
-            <p className="text-gray-500 text-sm">{aiStatus}</p>
+            <div className="text-3xl animate-pulse">⏳</div>
+            <p className="text-[#D4AF37] font-medium text-sm">Processing File</p>
+            <p className="text-gray-500 text-xs">{aiStatus}</p>
           </div>
         ) : uploadSuccess ? (
           <div className="flex flex-col items-center gap-3">
-            <div className="text-4xl animate-pulse">🎉</div>
-            <p className="text-green-600 font-bold">PDF Processed by Gemini AI!</p>
-            <p className="text-gray-500 text-xs">Ready to chat!</p>
+            <div className="text-3xl">✅</div>
+            <p className="text-[#D4AF37] font-medium text-sm">
+              PDF processed by Gemini AI
+            </p>
+            <p className="text-gray-500 text-xs">Ready to chat</p>
           </div>
         ) : isDragActive ? (
           <div className="flex flex-col items-center gap-3">
-            <div className="text-4xl">📂</div>
-            <p className="text-blue-600 font-medium">Drop your PDF here!</p>
+            <div className="text-3xl">📂</div>
+            <p className="text-[#D4AF37] font-medium text-sm">Drop your PDF here</p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3">
-            <div className="text-6xl">📄</div>
-            <p className="text-gray-700 font-medium text-lg">
+            <div className="text-4xl opacity-80">📄</div>
+            <p className="text-gray-300 font-medium text-sm">
               Drag and drop your PDF here
             </p>
-            <p className="text-gray-400 text-sm">or</p>
-            <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+            <p className="text-gray-600 text-xs">or</p>
+            <button className="px-4 py-2 text-xs font-medium text-black bg-gradient-to-r from-[#D4AF37] to-[#F5D060] rounded-lg hover:opacity-90 transition-all">
               Browse Files
             </button>
-            <p className="text-gray-400 text-xs mt-2">
+            <p className="text-gray-600 text-xs mt-1">
               PDF files only • Max 5MB
             </p>
           </div>
@@ -148,8 +151,8 @@ export default function UploadButton({ onUploadComplete }: UploadButtonProps) {
       </div>
 
       {error && (
-        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-red-600 text-sm">{error}</p>
+        <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <p className="text-red-400 text-sm">{error}</p>
         </div>
       )}
     </div>
