@@ -34,21 +34,18 @@ export default function UploadButton({ onUploadComplete }: UploadButtonProps) {
         setError(null);
         setAiStatus("Step 1/3: Uploading PDF to cloud...");
 
-        // 1. Upload PDF file to Supabase Storage
         const fileName = `${user?.id}/${Date.now()}_${file.name}`;
         const { data: storageData, error: storageError } =
           await supabase.storage.from("pdfs").upload(fileName, file);
 
         if (storageError) throw storageError;
 
-        // 2. Get the public URL of the uploaded file
         const { data: urlData } = supabase.storage
           .from("pdfs")
           .getPublicUrl(storageData.path);
 
         setAiStatus("Step 2/3: Registering document...");
 
-        // 3. Save file info to our database and get the generated ID
         const res = await fetch("/api/files", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -62,7 +59,6 @@ export default function UploadButton({ onUploadComplete }: UploadButtonProps) {
         if (!res.ok) throw new Error(dbErrorMsg);
         setAiStatus("Step 3/3: Gemini AI is reading & embedding your PDF...");
 
-        // 4. Call our Gemini AI Backend Route to process the PDF
         const response = await fetch("/api/process-pdf", {
           method: "POST",
           headers: {
@@ -115,13 +111,15 @@ export default function UploadButton({ onUploadComplete }: UploadButtonProps) {
 
         {uploading ? (
           <div className="flex flex-col items-center gap-3">
-            <div className="text-3xl animate-pulse">⏳</div>
+            <div className="w-6 h-6 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
             <p className="text-[#D4AF37] font-medium text-sm">Processing File</p>
             <p className="text-gray-500 text-xs">{aiStatus}</p>
           </div>
         ) : uploadSuccess ? (
           <div className="flex flex-col items-center gap-3">
-            <div className="text-3xl">✅</div>
+            <div className="w-8 h-8 rounded-full bg-[#D4AF37]/20 flex items-center justify-center text-[#D4AF37] text-lg">
+              &#10003;
+            </div>
             <p className="text-[#D4AF37] font-medium text-sm">
               PDF processed by Gemini AI
             </p>
@@ -129,12 +127,10 @@ export default function UploadButton({ onUploadComplete }: UploadButtonProps) {
           </div>
         ) : isDragActive ? (
           <div className="flex flex-col items-center gap-3">
-            <div className="text-3xl">📂</div>
             <p className="text-[#D4AF37] font-medium text-sm">Drop your PDF here</p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3">
-            <div className="text-4xl opacity-80">📄</div>
             <p className="text-gray-300 font-medium text-sm">
               Drag and drop your PDF here
             </p>
@@ -143,7 +139,7 @@ export default function UploadButton({ onUploadComplete }: UploadButtonProps) {
               Browse Files
             </button>
             <p className="text-gray-600 text-xs mt-1">
-              PDF files only • Max 5MB
+              PDF files only - Max 5MB
             </p>
           </div>
         )}
