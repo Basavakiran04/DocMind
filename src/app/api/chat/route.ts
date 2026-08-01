@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { auth } from "@clerk/nextjs/server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getEmbeddingModel, groqClient } from "@/lib/gemini";
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { question, fileId } = await req.json();
 
     if (!question || !fileId) {
@@ -11,6 +18,18 @@ export async function POST(req: NextRequest) {
         { error: "Missing question or fileId" },
         { status: 400 }
       );
+    }
+
+    // Verify this file belongs to the logged-in user before answering questions about it
+    const { data: fileRecord, error: ownershipError } = await supabaseAdmin
+      .from("files")
+      .select("id")
+      .eq("id", fileId)
+      .eq("user_id", userId)
+      .single();
+
+    if (ownershipError || !fileRecord) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     console.log("🔍 Searching for relevant chunks...");
@@ -21,7 +40,7 @@ export async function POST(req: NextRequest) {
     const questionVector = embedResult.embedding.values;
 
     // 2. Search Supabase for matching chunks
-    const { data: chunks, error: searchError } = await supabase.rpc(
+    const { data: chunks, error: searchError } = await supabaseAdmin.rpc(
       "match_documents",
       {
         query_embedding: questionVector,

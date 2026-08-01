@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { auth } from "@clerk/nextjs/server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getEmbeddingModel, chunkText, processInBatches } from "@/lib/gemini";
 import PDFParser from "pdf2json";
 
@@ -20,6 +21,12 @@ function extractTextFromPDF(buffer: Buffer): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { fileId, fileUrl } = await req.json();
 
     if (!fileId || !fileUrl) {
@@ -27,6 +34,18 @@ export async function POST(req: NextRequest) {
         { error: "Missing file credentials" },
         { status: 400 }
       );
+    }
+
+    // Verify this file actually belongs to the logged-in user before processing it
+    const { data: fileRecord, error: ownershipError } = await supabaseAdmin
+      .from("files")
+      .select("id")
+      .eq("id", fileId)
+      .eq("user_id", userId)
+      .single();
+
+    if (ownershipError || !fileRecord) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     console.log("📥 Downloading PDF from:", fileUrl);
@@ -53,13 +72,11 @@ export async function POST(req: NextRequest) {
 
     console.log(`✂️ Extracted ${rawText.length} characters.`);
 
-    // Solution 3: Larger chunks = fewer API calls
     const textChunks = chunkText(rawText);
     console.log(`📦 Split into ${textChunks.length} chunks`);
 
     console.log(`🧠 Sending chunks to Gemini AI...`);
 
-    // Solution 1 + 4: Batch processing with rotating API keys
     const embeddingRecords: any[] = [];
 
     await processInBatches(
@@ -69,7 +86,6 @@ export async function POST(req: NextRequest) {
       async (chunk: string, index: number) => {
         console.log(`🔄 Processing chunk ${index + 1}/${textChunks.length}`);
 
-        // Solution 4: Gets a fresh rotating API key each time
         const model = getEmbeddingModel();
         const embedResult = await model.embedContent(chunk);
         const vector = embedResult.embedding.values;
@@ -84,8 +100,7 @@ export async function POST(req: NextRequest) {
 
     console.log("💾 Saving vectors to Supabase...");
 
-    // Save all embeddings to Supabase
-    const { error: dbError } = await supabase
+    const { error: dbError } = await supabaseAdmin
       .from("file_embeddings")
       .insert(embeddingRecords);
 

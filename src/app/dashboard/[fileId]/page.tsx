@@ -3,7 +3,6 @@
 import { useUser } from "@clerk/nextjs";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
-import { supabase } from "@/lib/supabase";
 
 interface Message {
   role: "user" | "ai";
@@ -40,18 +39,15 @@ export default function ChatPage() {
   // Fetch file info
   useEffect(() => {
     const fetchFile = async () => {
-      const { data, error } = await supabase
-        .from("files")
-        .select("*")
-        .eq("id", fileId)
-        .single();
+      const res = await fetch(`/api/files/${fileId}`);
+      const result = await res.json();
 
-      if (error || !data) {
+      if (!res.ok || !result.file) {
         router.push("/dashboard");
         return;
       }
 
-      setFileInfo(data);
+      setFileInfo(result.file);
       setFetchingFile(false);
     };
 

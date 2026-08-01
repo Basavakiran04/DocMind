@@ -49,18 +49,17 @@ export default function UploadButton({ onUploadComplete }: UploadButtonProps) {
         setAiStatus("Step 2/3: Registering document...");
 
         // 3. Save file info to our database and get the generated ID
-        const { data: dbData, error: dbError } = await supabase
-          .from("files")
-          .insert({
-            user_id: user?.id,
+        const res = await fetch("/api/files", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
             file_name: file.name,
             file_url: urlData.publicUrl,
-          })
-          .select()
-          .single(); // Using .select().single() to get back the new file ID
+          }),
+        });
 
-        if (dbError) throw dbError;
-
+        const { file: dbData, error: dbErrorMsg } = await res.json();
+        if (!res.ok) throw new Error(dbErrorMsg);
         setAiStatus("Step 3/3: Gemini AI is reading & embedding your PDF...");
 
         // 4. Call our Gemini AI Backend Route to process the PDF

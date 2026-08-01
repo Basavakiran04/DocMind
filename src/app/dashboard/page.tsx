@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import UploadButton from "@/components/UploadButton";
-import { supabase } from "@/lib/supabase";
 
 interface PDFFile {
   id: string;
@@ -30,18 +29,14 @@ export default function Dashboard() {
   const fetchFiles = async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("files")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+    const res = await fetch("/api/files");
+    const data = await res.json();
 
-    if (!error && data) {
-      setFiles(data);
+    if (res.ok) {
+      setFiles(data.files);
     }
     setLoading(false);
   };
-
   useEffect(() => {
     if (isLoaded && isSignedIn) {
       fetchFiles();
