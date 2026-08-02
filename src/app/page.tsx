@@ -120,7 +120,7 @@ const fadeInUp = {
     y: 0,
     transition: { duration: 0.6, ease: "easeOut" },
   },
-};
+} as const;
 
 const fadeInLeft = {
   hidden: { opacity: 0, x: -30 },
@@ -129,7 +129,7 @@ const fadeInLeft = {
     x: 0,
     transition: { duration: 0.6, ease: "easeOut" },
   },
-};
+} as const;
 
 const fadeInRight = {
   hidden: { opacity: 0, x: 30 },
@@ -138,7 +138,7 @@ const fadeInRight = {
     x: 0,
     transition: { duration: 0.6, ease: "easeOut" },
   },
-};
+} as const;
 
 const staggerContainer = {
   hidden: {},
@@ -154,7 +154,7 @@ const scaleIn = {
     scale: 1,
     transition: { duration: 0.5, ease: "easeOut" },
   },
-};
+} as const;
 // ============================================
 // FADE ANIMATION HOOK
 // ============================================
